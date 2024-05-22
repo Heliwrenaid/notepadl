@@ -3,6 +3,7 @@ package com.example.notepadl;
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -65,7 +66,13 @@ public class MainActivity extends AppCompatActivity {
             String title = titleList.get(position);
             Optional<String> content = loadContentFromPreferences(title);
             if (content.isPresent()) {
-                Toast.makeText(MainActivity.this, content.get(), Toast.LENGTH_LONG).show();
+                try {
+                    String decrypted = Crypto.decryptString(content.get());
+                    Toast.makeText(MainActivity.this, decrypted, Toast.LENGTH_LONG).show();
+                } catch (Exception ex) {
+                    Toast.makeText(MainActivity.this, "Failed to decrypt message", Toast.LENGTH_LONG).show();
+                    Log.e("MainActivity", "Failed to decrypt note", ex);
+                }
             } else {
                 String message = "Cannot retrieve note content";
                 Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
@@ -100,15 +107,23 @@ public class MainActivity extends AppCompatActivity {
         return sharedPreferences.getAll().keySet();
     }
 
-    private void saveNote(String title, String content) {
+    private void saveNote(String title, String content)  {
         if (titleList.contains(title)) {
             String message = "Note with title: " + title + " already exists";
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
         } else {
             titleList.add(title);
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(title, content);
-            editor.apply();
+
+            try {
+                var encryptedContent = Crypto.encryptString(content);
+                editor.putString(title, encryptedContent);
+                editor.apply();
+            } catch (Exception ex) {
+                Toast.makeText(this, "Failed to encrypt message", Toast.LENGTH_LONG).show();
+                Log.e("MainActivity", "Failed to encrypt and save note", ex);
+            }
+
         }
     }
 
@@ -126,7 +141,11 @@ public class MainActivity extends AppCompatActivity {
                     editor.apply();
                     titleList.clear();
                     adapter.notifyDataSetChanged();
-                    //TODO: clear keys from Keystore
+                    try {
+                        Crypto.deleteKey();
+                    } catch (Exception ex) {
+                        Toast.makeText(this, "Failed to delete key from Keystore", Toast.LENGTH_LONG).show();
+                    }
                 })
                 .setNegativeButton(android.R.string.no, null)
                 .show();
