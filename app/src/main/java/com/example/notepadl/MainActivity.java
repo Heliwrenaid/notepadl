@@ -14,17 +14,26 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executor;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "com.example.notepadl.PREFS";
     private static final String ENCRYPTED_NOTE = "EncryptedNote";
+    private final Crypto crypto = new Crypto();
 
     private EditText contentInputField;
     private EditText titleInputField;
@@ -67,9 +76,9 @@ public class MainActivity extends AppCompatActivity {
             String title = titleList.get(position);
             Optional<String> content = loadContentFromPreferences(title);
             if (content.isPresent()) {
-                    Intent intent = new Intent(this, DisplayNote.class);
-                    intent.putExtra(ENCRYPTED_NOTE, content.get());
-                    startActivity(intent);
+                Intent intent = new Intent(this, DisplayNote.class);
+                intent.putExtra(ENCRYPTED_NOTE, content.get());
+                startActivity(intent);
             } else {
                 String message = "Cannot retrieve note content";
                 Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
@@ -104,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
         return sharedPreferences.getAll().keySet();
     }
 
-    private void saveNote(String title, String content)  {
+    private void saveNote(String title, String content) {
         if (titleList.contains(title)) {
             String message = "Note with title: " + title + " already exists";
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
@@ -113,16 +122,40 @@ public class MainActivity extends AppCompatActivity {
             SharedPreferences.Editor editor = sharedPreferences.edit();
 
             try {
-                var encryptedContent = Crypto.encryptString(content);
-                editor.putString(title, encryptedContent);
-                editor.apply();
+                SecretKey secretKey = Crypto.getSecretKey();
+                Cipher cipher = Cipher.getInstance(Crypto.TRANSFORMATION);
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    BiometricPrompt.AuthenticationCallback callback =
+                            new BiometricPrompt.AuthenticationCallback() {
+                                @Override
+                                public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                                    super.onAuthenticationSucceeded(result);
+                                    try {
+                                        String encryptedContent = crypto.encryptString(cipher, content);
+                                        editor.putString(title, encryptedContent);
+                                        editor.apply();
+                                    } catch (Exception ex) {
+                                        Log.e("MainActivity", "Failed to encrypt and save note", ex);
+                                    }
+                                }
+                            };
+
+
+                    Executor executor = ContextCompat.getMainExecutor(this);
+                    BiometricPrompt prompt = new BiometricPrompt(this, executor, callback);
+                    Common.setupBiometricPrompt(prompt, cipher);
+                }
             } catch (Exception ex) {
                 Toast.makeText(this, "Failed to encrypt message", Toast.LENGTH_LONG).show();
-                Log.e("MainActivity", "Failed to encrypt and save note", ex);
+                Log.e("MainActivity", "Failed invoke encrypt operation in secure context", ex);
             }
 
         }
     }
+
+
 
     private Optional<String> loadContentFromPreferences(String title) {
         return Optional.ofNullable(sharedPreferences.getString(title, null));
