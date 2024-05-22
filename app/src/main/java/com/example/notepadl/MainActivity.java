@@ -1,6 +1,7 @@
 package com.example.notepadl;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,8 +23,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
-
     private static final String PREFS_NAME = "com.example.notepadl.PREFS";
+    private static final String ENCRYPTED_NOTE = "EncryptedNote";
 
     private EditText contentInputField;
     private EditText titleInputField;
@@ -66,13 +67,9 @@ public class MainActivity extends AppCompatActivity {
             String title = titleList.get(position);
             Optional<String> content = loadContentFromPreferences(title);
             if (content.isPresent()) {
-                try {
-                    String decrypted = Crypto.decryptString(content.get());
-                    Toast.makeText(MainActivity.this, decrypted, Toast.LENGTH_LONG).show();
-                } catch (Exception ex) {
-                    Toast.makeText(MainActivity.this, "Failed to decrypt message", Toast.LENGTH_LONG).show();
-                    Log.e("MainActivity", "Failed to decrypt note", ex);
-                }
+                    Intent intent = new Intent(this, DisplayNote.class);
+                    intent.putExtra(ENCRYPTED_NOTE, content.get());
+                    startActivity(intent);
             } else {
                 String message = "Cannot retrieve note content";
                 Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
