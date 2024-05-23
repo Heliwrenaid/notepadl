@@ -3,6 +3,8 @@ package com.example.notepadl;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -17,11 +19,20 @@ import javax.crypto.Cipher;
 
 public class DisplayNote extends AppCompatActivity {
     private static final String ENCRYPTED_NOTE = "EncryptedNote";
+    private View sensitiveView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_SECURE,
+                WindowManager.LayoutParams.FLAG_SECURE
+        );
+
         setContentView(R.layout.activity_display_note);
+
+        sensitiveView = findViewById(R.id.sensitiveTextView);
 
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra(ENCRYPTED_NOTE)) {
@@ -38,7 +49,7 @@ public class DisplayNote extends AppCompatActivity {
                                     super.onAuthenticationSucceeded(result);
                                     try {
                                         String decryptedNote = Crypto.decryptString(cipher, encryptedNote);
-                                        TextView textView = findViewById(R.id.textView);
+                                        TextView textView = findViewById(R.id.sensitiveTextView);
                                         textView.setText(decryptedNote);
                                     } catch (Exception ex) {
                                         Log.e("MainActivity", "Failed to encrypt and save note", ex);
@@ -57,5 +68,17 @@ public class DisplayNote extends AppCompatActivity {
         } else {
             Log.e("DisplayNoteActivity", "No encrypted note provided");
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        sensitiveView.setVisibility(View.INVISIBLE);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        sensitiveView.setVisibility(View.VISIBLE);
     }
 }
