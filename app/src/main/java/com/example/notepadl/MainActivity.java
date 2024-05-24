@@ -17,7 +17,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 
@@ -56,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         titleList = new ArrayList<>(loadTitlesFromPreferences());
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, titleList);
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, titleList);
         notesList.setAdapter(adapter);
 
         addButton.setOnClickListener(v -> {
@@ -64,9 +62,11 @@ public class MainActivity extends AppCompatActivity {
             String title = titleInputField.getText().toString().trim();
             if (content.isEmpty() || title.isEmpty()) {
                 Toast.makeText(MainActivity.this, "Note title or content is empty", Toast.LENGTH_SHORT).show();
+            } else if (titleList.contains(title)) {
+                String message = "Note with title: " + title + " already exists";
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
             } else {
                 saveNote(title, content);
-                adapter.notifyDataSetChanged();
                 contentInputField.setText("");
                 titleInputField.setText("");
             }
@@ -114,48 +114,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveNote(String title, String content) {
-        if (titleList.contains(title)) {
-            String message = "Note with title: " + title + " already exists";
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-        } else {
-            titleList.add(title);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
+        try {
+            SecretKey secretKey = Crypto.getSecretKey();
+            Cipher cipher = Cipher.getInstance(Crypto.TRANSFORMATION);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
-            try {
-                SecretKey secretKey = Crypto.getSecretKey();
-                Cipher cipher = Cipher.getInstance(Crypto.TRANSFORMATION);
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    BiometricPrompt.AuthenticationCallback callback =
-                            new BiometricPrompt.AuthenticationCallback() {
-                                @Override
-                                public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
-                                    super.onAuthenticationSucceeded(result);
-                                    try {
-                                        String encryptedContent = crypto.encryptString(cipher, content);
-                                        editor.putString(title, encryptedContent);
-                                        editor.apply();
-                                    } catch (Exception ex) {
-                                        Log.e("MainActivity", "Failed to encrypt and save note", ex);
-                                    }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                BiometricPrompt.AuthenticationCallback callback =
+                        new BiometricPrompt.AuthenticationCallback() {
+                            @Override
+                            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                                super.onAuthenticationSucceeded(result);
+                                try {
+                                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                                    String encryptedContent = crypto.encryptString(cipher, content);
+                                    editor.putString(title, encryptedContent);
+                                    editor.apply();
+                                    titleList.add(title);
+                                    adapter.notifyDataSetChanged();
+                                } catch (Exception ex) {
+                                    Log.e("MainActivity", "Failed to encrypt and save note", ex);
                                 }
-                            };
+                            }
+                        };
 
-
-                    Executor executor = ContextCompat.getMainExecutor(this);
-                    BiometricPrompt prompt = new BiometricPrompt(this, executor, callback);
-                    Common.setupBiometricPrompt(prompt, cipher);
-                }
-            } catch (Exception ex) {
-                Toast.makeText(this, "Failed to encrypt message", Toast.LENGTH_LONG).show();
-                Log.e("MainActivity", "Failed invoke encrypt operation in secure context", ex);
+                Executor executor = ContextCompat.getMainExecutor(this);
+                BiometricPrompt prompt = new BiometricPrompt(this, executor, callback);
+                Common.setupBiometricPrompt(prompt, cipher);
             }
-
+        } catch (Exception ex) {
+            Toast.makeText(this, "Failed to encrypt message", Toast.LENGTH_LONG).show();
+            Log.e("MainActivity", "Failed invoke encrypt operation in secure context", ex);
         }
     }
-
-
 
     private Optional<String> loadContentFromPreferences(String title) {
         return Optional.ofNullable(sharedPreferences.getString(title, null));
@@ -173,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
                     adapter.notifyDataSetChanged();
                     try {
                         Crypto.deleteKey();
+                        Toast.makeText(this, "Data cleared successfully", Toast.LENGTH_LONG).show();
                     } catch (Exception ex) {
                         Toast.makeText(this, "Failed to delete key from Keystore", Toast.LENGTH_LONG).show();
                     }

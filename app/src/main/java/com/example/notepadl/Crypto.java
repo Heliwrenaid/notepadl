@@ -3,23 +3,16 @@ package com.example.notepadl;
 import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
-
-import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
-import java.util.concurrent.Executor;
-
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-
 import android.util.Base64;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.biometric.BiometricManager;
-import androidx.biometric.BiometricPrompt;
-import androidx.core.content.ContextCompat;
+
+import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
 public class Crypto {
@@ -61,20 +54,6 @@ public class Crypto {
         return specBuilder.build();
     }
 
-    public String encryptString(Cipher cipher, String plaintext) throws Exception {
-
-
-        byte[] iv = cipher.getIV();
-        byte[] encryption = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
-        byte[] encryptedData = new byte[1 + iv.length + encryption.length];
-
-        encryptedData[0] = (byte) iv.length;
-        System.arraycopy(iv, 0, encryptedData, 1, iv.length);
-        System.arraycopy(encryption, 0, encryptedData, 1 + iv.length, encryption.length);
-
-        return Base64.encodeToString(encryptedData, Base64.DEFAULT);
-    }
-
     public static Cipher getCipherForDecryption(String encryptedData) throws Exception {
         byte[] decodedData = Base64.decode(encryptedData, Base64.DEFAULT);
         int ivLength = decodedData[0];
@@ -107,5 +86,19 @@ public class Crypto {
         if (keyStore.containsAlias(SECRET_KEY_ALIAS)) {
             keyStore.deleteEntry(SECRET_KEY_ALIAS);
         }
+    }
+
+    public String encryptString(Cipher cipher, String plaintext) throws Exception {
+
+
+        byte[] iv = cipher.getIV();
+        byte[] encryption = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+        byte[] encryptedData = new byte[1 + iv.length + encryption.length];
+
+        encryptedData[0] = (byte) iv.length;
+        System.arraycopy(iv, 0, encryptedData, 1, iv.length);
+        System.arraycopy(encryption, 0, encryptedData, 1 + iv.length, encryption.length);
+
+        return Base64.encodeToString(encryptedData, Base64.DEFAULT);
     }
 }
