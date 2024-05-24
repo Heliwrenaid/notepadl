@@ -1,6 +1,8 @@
 package com.example.notepadl;
 
 import android.annotation.SuppressLint;
+import android.app.KeyguardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -45,6 +47,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (!isLockscreenEnabled()) {
+            String message = "App requires setting a system password/pin/pattern to work";
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            finishAndRemoveTask();
+        }
+
         setContentView(R.layout.activity_main);
 
         contentInputField = findViewById(R.id.contentInputField);
@@ -107,6 +116,11 @@ public class MainActivity extends AppCompatActivity {
                 showConfirmationDialog();
         }
         return true;
+    }
+
+    private boolean isLockscreenEnabled() {
+        KeyguardManager keyguardManager = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
+        return keyguardManager.isDeviceSecure();
     }
 
     private Set<String> loadTitlesFromPreferences() {
