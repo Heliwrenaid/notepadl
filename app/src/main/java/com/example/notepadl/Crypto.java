@@ -89,8 +89,6 @@ public class Crypto {
     }
 
     public String encryptString(Cipher cipher, String plaintext) throws Exception {
-
-
         byte[] iv = cipher.getIV();
         byte[] encryption = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
         byte[] encryptedData = new byte[1 + iv.length + encryption.length];

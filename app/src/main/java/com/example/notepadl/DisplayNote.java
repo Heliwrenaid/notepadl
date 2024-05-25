@@ -56,10 +56,11 @@ public class DisplayNote extends AppCompatActivity {
                                 }
                             };
 
-
                     Executor executor = ContextCompat.getMainExecutor(this);
                     BiometricPrompt prompt = new BiometricPrompt(this, executor, callback);
                     Common.setupBiometricPrompt(prompt, cipher);
+                } else {
+                    //TODO
                 }
             } catch (Exception e) {
                 Log.e("DisplayNoteActivity", "Failed to decrypt note", e);
