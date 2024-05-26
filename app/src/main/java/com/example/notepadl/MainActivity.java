@@ -97,9 +97,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         if (!isLockscreenEnabled()) {
-            String message = "App requires setting a system password/pin/pattern to work";
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-            finishAndRemoveTask();
+            closeApp("Cannot use this app without setting system password/pin/pattern");
+            return;
+        }
+
+        if (RootDetectorUtil.isDeviceRooted(this)) {
+            closeApp("Cannot use this app with rooted device");
+            return;
+        }
+
+        if (FridaDetectorUtil.isFridaInstalled()) {
+            closeApp("Cannot use this app when frida-server is installed");
+            return;
         }
 
         setContentView(R.layout.activity_main);
@@ -420,6 +429,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
+    }
+
+    private void closeApp(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        finishAndRemoveTask();
     }
 
 }
