@@ -16,11 +16,10 @@ public class SharedPrefsUtil {
     private SharedPrefsUtil() {
     }
 
-    public static byte[] decryptAndSerialize(SharedPreferences sharedPreferences) throws Exception {
+    public static byte[] decryptAndSerialize(SharedPreferences sharedPreferences, Cipher cipher) throws Exception {
         Map<String, String> map = new HashMap<>();
         for (Map.Entry<String, ?> entry : sharedPreferences.getAll().entrySet()) {
             String encryptedNote = (String) entry.getValue();
-            Cipher cipher = Crypto.getCipherForDecryption(encryptedNote);
             //TODO: fix error with no authenticated cipher and IV reusing
             String decrypted = Crypto.decryptString(cipher, encryptedNote);
             map.put(entry.getKey(), decrypted);

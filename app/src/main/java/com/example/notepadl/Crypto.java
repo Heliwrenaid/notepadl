@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -17,8 +18,8 @@ import javax.crypto.spec.GCMParameterSpec;
 
 public class Crypto {
     public static final String TRANSFORMATION = "AES/GCM/NoPadding";
-    private static final int TAG_SIZE = 128;
     private static final String SECRET_KEY_ALIAS = "note_encryption_key";
+    private static final byte[] IV  = new byte[]{1,2,3,4,5,6,7,8,9,10,11,12};
 
     public static SecretKey getSecretKey() throws Exception {
         KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
@@ -44,6 +45,7 @@ public class Crypto {
         ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setKeySize(256)
+                .setRandomizedEncryptionRequired(false)
                 .setUserAuthenticationRequired(true)
                 .setInvalidatedByBiometricEnrollment(true);
 
@@ -54,28 +56,22 @@ public class Crypto {
         return specBuilder.build();
     }
 
-    public static Cipher getCipherForDecryption(String encryptedData) throws Exception {
-        byte[] decodedData = Base64.decode(encryptedData, Base64.DEFAULT);
-        int ivLength = decodedData[0];
-        byte[] iv = new byte[ivLength];
-        System.arraycopy(decodedData, 1, iv, 0, ivLength);
+    //public static Cipher getCipherForDecryption(String encryptedData) throws Exception {
+    //    byte[] decodedData = Base64.decode(encryptedData, Base64.DEFAULT);
+    //    int ivLength = decodedData[0];
+    //    byte[] iv = new byte[ivLength];
+    //    System.arraycopy(decodedData, 1, iv, 0, ivLength);
 
-        SecretKey secretKey = getSecretKey();
-        GCMParameterSpec parameterSpec = new GCMParameterSpec(TAG_SIZE, iv);
-        Cipher cipher = Cipher.getInstance(Crypto.TRANSFORMATION);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
-        return cipher;
-    }
+    //    SecretKey secretKey = getSecretKey();
+    //    GCMParameterSpec parameterSpec = new GCMParameterSpec(TAG_SIZE, iv);
+    //    Cipher cipher = Cipher.getInstance(Crypto.TRANSFORMATION);
+    //    cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
+    //    return cipher;
+    //}
 
     public static String decryptString(Cipher cipher, String encryptedData) throws Exception {
         byte[] decodedData = Base64.decode(encryptedData, Base64.DEFAULT);
-        int ivLength = decodedData[0];
-
-        byte[] encryption = new byte[decodedData.length - ivLength - 1];
-        System.arraycopy(decodedData, ivLength + 1, encryption, 0, encryption.length);
-
-        byte[] decryptedData = cipher.doFinal(encryption);
-
+        byte[] decryptedData = cipher.doFinal(decodedData);
         return new String(decryptedData, StandardCharsets.UTF_8);
     }
 
@@ -89,14 +85,15 @@ public class Crypto {
     }
 
     public String encryptString(Cipher cipher, String plaintext) throws Exception {
-        byte[] iv = cipher.getIV();
         byte[] encryption = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
-        byte[] encryptedData = new byte[1 + iv.length + encryption.length];
+        return Base64.encodeToString(encryption, Base64.DEFAULT);
+    }
 
-        encryptedData[0] = (byte) iv.length;
-        System.arraycopy(iv, 0, encryptedData, 1, iv.length);
-        System.arraycopy(encryption, 0, encryptedData, 1 + iv.length, encryption.length);
-
-        return Base64.encodeToString(encryptedData, Base64.DEFAULT);
+    public static Cipher getCipher(int mode) throws Exception {
+        SecretKey secretKey = getSecretKey();
+        Cipher cipher = Cipher.getInstance(Crypto.TRANSFORMATION);
+        GCMParameterSpec spec = new GCMParameterSpec(128, IV);
+        cipher.init(mode, secretKey, spec);
+        return cipher;
     }
 }

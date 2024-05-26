@@ -38,7 +38,7 @@ public class DisplayNote extends AppCompatActivity {
             String encryptedNote = intent.getStringExtra(ENCRYPTED_NOTE);
 
             try {
-                Cipher cipher = Crypto.getCipherForDecryption(encryptedNote);
+                Cipher cipher = Crypto.getCipher(Cipher.DECRYPT_MODE);
 
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                     BiometricPrompt.AuthenticationCallback callback =

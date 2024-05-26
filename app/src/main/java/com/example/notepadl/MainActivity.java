@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
                 String message = "Note with title: " + title + " already exists";
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
             } else {
-                showBiometricPrompt(cipher -> saveNoteCallback(title, content, cipher));
+                showBiometricPrompt(cipher -> saveNoteCallback(title, content, cipher), Cipher.ENCRYPT_MODE);
                 contentInputField.setText("");
                 titleInputField.setText("");
             }
@@ -162,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "There are no notes to export", Toast.LENGTH_LONG).show();
                     return true;
                 }
-                showBiometricPrompt(this::exportNotesCallback);
+                showBiometricPrompt(this::exportNotesCallback, Cipher.DECRYPT_MODE);
             }
             break;
             case R.id.clear_data:
@@ -269,11 +269,9 @@ public class MainActivity extends AppCompatActivity {
         return sharedPreferences.getAll().keySet();
     }
 
-    private void showBiometricPrompt(Function<Cipher, BiometricPrompt.AuthenticationCallback> function) {
+    private void showBiometricPrompt(Function<Cipher, BiometricPrompt.AuthenticationCallback> function, int cipherMode) {
         try {
-            SecretKey secretKey = Crypto.getSecretKey();
-            Cipher cipher = Cipher.getInstance(Crypto.TRANSFORMATION);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            Cipher cipher = Crypto.getCipher(cipherMode);
 
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 Executor executor = ContextCompat.getMainExecutor(this);
@@ -314,8 +312,9 @@ public class MainActivity extends AppCompatActivity {
                 super.onAuthenticationSucceeded(result);
                 byte[] serializedNotes;
                 try {
-                    serializedNotes = SharedPrefsUtil.decryptAndSerialize(sharedPreferences);
+                    serializedNotes = SharedPrefsUtil.decryptAndSerialize(sharedPreferences, cipher);
                 } catch (Exception e) {
+                    Log.d("MainActivity", "Cannot export notes", e);
                     Toast.makeText(MainActivity.this, "Cannot export notes", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -371,7 +370,7 @@ public class MainActivity extends AppCompatActivity {
                 AesKeySpec keySpec = KeyGeneratorUtil.generateAesKeySpec(password);
                 byte[] decryptedBytes = NativeCryptoUtil.decrypt(fileContent, keySpec.getKey(), keySpec.getIv());
                 Map<String, String> notes = SharedPrefsUtil.deserialize(decryptedBytes);
-                showBiometricPrompt(cipher -> importNotesCallback(notes, cipher));
+                showBiometricPrompt(cipher -> importNotesCallback(notes, cipher), Cipher.ENCRYPT_MODE);
             } catch (IOException e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Failed to read file", Toast.LENGTH_SHORT).show();
