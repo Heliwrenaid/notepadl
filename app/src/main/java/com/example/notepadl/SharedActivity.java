@@ -9,11 +9,6 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
-import androidx.core.content.ContextCompat;
-
-import java.util.concurrent.Executor;
-
-import javax.crypto.Cipher;
 
 public class SharedActivity extends AppCompatActivity {
 
@@ -42,32 +37,26 @@ public class SharedActivity extends AppCompatActivity {
                 return;
             }
 
-            Cipher cipher = Crypto.getCipherForDecryption(encryptedNote);
-
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                BiometricPrompt.AuthenticationCallback callback =
-                        new BiometricPrompt.AuthenticationCallback() {
-                            @Override
-                            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
-                                super.onAuthenticationSucceeded(result);
-                                try {
-                                    String decryptedNote = Crypto.decryptString(cipher, encryptedNote);
-                                    finishWithSuccess(decryptedNote);
-                                } catch (Exception ex) {
-                                    finishWithError("Failed to decrypt note");
-                                }
-                            }
-                        };
-                Executor executor = ContextCompat.getMainExecutor(this);
-                BiometricPrompt prompt = new BiometricPrompt(this, executor, callback);
-                Common.setupBiometricPrompt(prompt, cipher);
-            } else {
-                //TODO
-                finishWithError("Unsupported Android SDK");
-            }
+            BiometricUtil biometricUtil = new BiometricUtil(this, getNoteContentCallback(encryptedNote));
+            biometricUtil.authenticate();
         } catch (Exception e) {
             finishWithError("Failed to decrypt note");
         }
+    }
+
+    private BiometricPrompt.AuthenticationCallback getNoteContentCallback(String encryptedNote) {
+        return new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                try {
+                    String decryptedNote = CryptoUtil.decryptString(encryptedNote);
+                    finishWithSuccess(decryptedNote);
+                } catch (Exception ex) {
+                    finishWithError("Failed to decrypt note");
+                }
+            }
+        };
     }
 
     private void finishWithSuccess(String result) {

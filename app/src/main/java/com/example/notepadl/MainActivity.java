@@ -45,12 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Executor;
 import java.util.function.Consumer;
-import java.util.function.Function;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -60,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String DEFAULT_FILE_NAME = "notes.bak";
     private static final int STORAGE_PERMISSION_CODE = 23;
     private static final String TAG = "MainActivity";
-    private final Crypto crypto = new Crypto();
     private final ActivityResultLauncher<Intent> storageActivityResultLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                     o -> {
@@ -111,6 +105,13 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        try {
+            KeyStoreUtil.generateKeyIfNotExists();
+        } catch (Exception e) {
+            closeApp("Cannot generate application key");
+            return;
+        }
+
         setContentView(R.layout.activity_main);
 
         contentInputField = findViewById(R.id.contentInputField);
@@ -132,7 +133,8 @@ public class MainActivity extends AppCompatActivity {
                 String message = "Note with title: " + title + " already exists";
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
             } else {
-                showBiometricPrompt(cipher -> saveNoteCallback(title, content, cipher), Cipher.ENCRYPT_MODE);
+                BiometricUtil biometricUtil = new BiometricUtil(this, saveNoteCallback(title, content));
+                biometricUtil.authenticate();
                 contentInputField.setText("");
                 titleInputField.setText("");
             }
@@ -172,11 +174,12 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "There are no notes to export", Toast.LENGTH_LONG).show();
                     return true;
                 }
-                showBiometricPrompt(this::exportNotesCallback, Cipher.DECRYPT_MODE);
+                BiometricUtil biometricUtil = new BiometricUtil(this, exportNotesCallback());
+                biometricUtil.authenticate();
             }
             break;
             case R.id.clear_data:
-                showConfirmationDialog();
+                showClearDataDialog();
                 break;
         }
         return true;
@@ -279,31 +282,14 @@ public class MainActivity extends AppCompatActivity {
         return sharedPreferences.getAll().keySet();
     }
 
-    private void showBiometricPrompt(Function<Cipher, BiometricPrompt.AuthenticationCallback> function, int cipherMode) {
-        try {
-            Cipher cipher = Crypto.getCipher(cipherMode);
-
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                Executor executor = ContextCompat.getMainExecutor(this);
-                BiometricPrompt prompt = new BiometricPrompt(this, executor, function.apply(cipher));
-                Common.setupBiometricPrompt(prompt, cipher);
-            } else {
-                // TODO
-            }
-        } catch (Exception ex) {
-            Toast.makeText(this, "Failed to encrypt message", Toast.LENGTH_LONG).show();
-            Log.e(TAG, "Failed invoke encrypt operation in secure context", ex);
-        }
-    }
-
-    private BiometricPrompt.AuthenticationCallback saveNoteCallback(String title, String content, Cipher cipher) {
+    private BiometricPrompt.AuthenticationCallback saveNoteCallback(String title, String content) {
         return new BiometricPrompt.AuthenticationCallback() {
             @Override
             public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                 super.onAuthenticationSucceeded(result);
                 try {
                     SharedPreferences.Editor editor = sharedPreferences.edit();
-                    String encryptedContent = crypto.encryptString(cipher, content);
+                    String encryptedContent = CryptoUtil.encryptString(content);
                     editor.putString(title, encryptedContent);
                     editor.apply();
                     titleList.add(title);
@@ -315,14 +301,14 @@ public class MainActivity extends AppCompatActivity {
         };
     }
 
-    private BiometricPrompt.AuthenticationCallback exportNotesCallback(Cipher cipher) {
+    private BiometricPrompt.AuthenticationCallback exportNotesCallback() {
         return new BiometricPrompt.AuthenticationCallback() {
             @Override
             public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                 super.onAuthenticationSucceeded(result);
                 byte[] serializedNotes;
                 try {
-                    serializedNotes = SharedPrefsUtil.decryptAndSerialize(sharedPreferences, cipher);
+                    serializedNotes = SharedPrefsUtil.decryptAndSerialize(sharedPreferences);
                 } catch (Exception e) {
                     Log.d("MainActivity", "Cannot export notes", e);
                     Toast.makeText(MainActivity.this, "Cannot export notes", Toast.LENGTH_SHORT).show();
@@ -345,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
         return Optional.ofNullable(sharedPreferences.getString(title, null));
     }
 
-    private void showConfirmationDialog() {
+    private void showClearDataDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Confirm")
                 .setMessage("Are you sure you want to delete all notes?")
@@ -356,7 +342,8 @@ public class MainActivity extends AppCompatActivity {
                     titleList.clear();
                     adapter.notifyDataSetChanged();
                     try {
-                        Crypto.deleteKey();
+                        KeyStoreUtil.deleteKey();
+                        KeyStoreUtil.generateKeyIfNotExists();
                         Toast.makeText(this, "Data cleared successfully", Toast.LENGTH_LONG).show();
                     } catch (Exception ex) {
                         Toast.makeText(this, "Failed to delete key from Keystore", Toast.LENGTH_LONG).show();
@@ -380,7 +367,8 @@ public class MainActivity extends AppCompatActivity {
                 AesKeySpec keySpec = KeyGeneratorUtil.generateAesKeySpec(password);
                 byte[] decryptedBytes = NativeCryptoUtil.decrypt(fileContent, keySpec.getKey(), keySpec.getIv());
                 Map<String, String> notes = SharedPrefsUtil.deserialize(decryptedBytes);
-                showBiometricPrompt(cipher -> importNotesCallback(notes, cipher), Cipher.ENCRYPT_MODE);
+                BiometricUtil biometricUtil = new BiometricUtil(this, importNotesCallback(notes));
+                biometricUtil.authenticate();
             } catch (IOException e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Failed to read file", Toast.LENGTH_SHORT).show();
@@ -402,7 +390,7 @@ public class MainActivity extends AppCompatActivity {
         return byteArrayOutputStream.toByteArray();
     }
 
-    private BiometricPrompt.AuthenticationCallback importNotesCallback(Map<String, String> notes, Cipher cipher) {
+    private BiometricPrompt.AuthenticationCallback importNotesCallback(Map<String, String> notes) {
         return new BiometricPrompt.AuthenticationCallback() {
             @Override
             public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
@@ -410,11 +398,9 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     for (Map.Entry<String, String> entry : notes.entrySet()) {
-                        //TODO: maybe not overwrite existing notes
-                        //TODO: fix error with reusing cipher
                         String title = entry.getKey();
                         String content = entry.getValue();
-                        String encryptedContent = crypto.encryptString(cipher, content);
+                        String encryptedContent = CryptoUtil.encryptString(content);
                         editor.putString(title, encryptedContent);
                         editor.apply();
                         if (!titleList.contains(title)) {

@@ -10,18 +10,15 @@ import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.crypto.Cipher;
-
 public class SharedPrefsUtil {
     private SharedPrefsUtil() {
     }
 
-    public static byte[] decryptAndSerialize(SharedPreferences sharedPreferences, Cipher cipher) throws Exception {
+    public static byte[] decryptAndSerialize(SharedPreferences sharedPreferences) throws Exception {
         Map<String, String> map = new HashMap<>();
         for (Map.Entry<String, ?> entry : sharedPreferences.getAll().entrySet()) {
             String encryptedNote = (String) entry.getValue();
-            //TODO: fix error with no authenticated cipher and IV reusing
-            String decrypted = Crypto.decryptString(cipher, encryptedNote);
+            String decrypted = CryptoUtil.decryptString(encryptedNote);
             map.put(entry.getKey(), decrypted);
         }
 

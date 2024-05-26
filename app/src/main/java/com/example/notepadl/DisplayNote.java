@@ -10,11 +10,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
-import androidx.core.content.ContextCompat;
-
-import java.util.concurrent.Executor;
-
-import javax.crypto.Cipher;
 
 public class DisplayNote extends AppCompatActivity {
     private static final String ENCRYPTED_NOTE = "EncryptedNote";
@@ -36,38 +31,27 @@ public class DisplayNote extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra(ENCRYPTED_NOTE)) {
             String encryptedNote = intent.getStringExtra(ENCRYPTED_NOTE);
-
-            try {
-                Cipher cipher = Crypto.getCipher(Cipher.DECRYPT_MODE);
-
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    BiometricPrompt.AuthenticationCallback callback =
-                            new BiometricPrompt.AuthenticationCallback() {
-                                @Override
-                                public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
-                                    super.onAuthenticationSucceeded(result);
-                                    try {
-                                        String decryptedNote = Crypto.decryptString(cipher, encryptedNote);
-                                        TextView textView = findViewById(R.id.sensitiveTextView);
-                                        textView.setText(decryptedNote);
-                                    } catch (Exception ex) {
-                                        Log.e("MainActivity", "Failed to encrypt and save note", ex);
-                                    }
-                                }
-                            };
-
-                    Executor executor = ContextCompat.getMainExecutor(this);
-                    BiometricPrompt prompt = new BiometricPrompt(this, executor, callback);
-                    Common.setupBiometricPrompt(prompt, cipher);
-                } else {
-                    //TODO
-                }
-            } catch (Exception e) {
-                Log.e("DisplayNoteActivity", "Failed to decrypt note", e);
-            }
+            BiometricUtil biometricUtil = new BiometricUtil(this, displayNoteContent(encryptedNote));
+            biometricUtil.authenticate();
         } else {
             Log.e("DisplayNoteActivity", "No encrypted note provided");
         }
+    }
+
+    private BiometricPrompt.AuthenticationCallback displayNoteContent(String encryptedNote) {
+        return new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                try {
+                    String decryptedNote = CryptoUtil.decryptString(encryptedNote);
+                    TextView textView = findViewById(R.id.sensitiveTextView);
+                    textView.setText(decryptedNote);
+                } catch (Exception ex) {
+                    Log.e("MainActivity", "Failed to decrypt note", ex);
+                }
+            }
+        };
     }
 
     @Override
