@@ -21,6 +21,14 @@
             android:name=".DisplayNote"
             android:exported="false" />
         <activity
+            android:name=".SharedActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.notepadl.GET_NOTE_CONTENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

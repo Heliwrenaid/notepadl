@@ -53,13 +53,30 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String PREFS_NAME = "com.example.notepadl.PREFS";
+
+    public static final String NOTES_PREFS_NAME = "com.example.notepadl.NOTE_PREFS";
     private static final String ENCRYPTED_NOTE = "EncryptedNote";
     private static final String SDCARD_APP_DIR = "Notepadl";
     private static final String DEFAULT_FILE_NAME = "notes.bak";
     private static final int STORAGE_PERMISSION_CODE = 23;
     private static final String TAG = "MainActivity";
     private final Crypto crypto = new Crypto();
+    private final ActivityResultLauncher<Intent> storageActivityResultLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    o -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            if (!Environment.isExternalStorageManager()) {
+                                Toast.makeText(this, "Storage Permissions Denied", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+    private EditText contentInputField;
+    private EditText titleInputField;
+    private Button addButton;
+    private ListView notesList;
+    private List<String> titleList;
+    private ArrayAdapter<String> adapter;
+    private SharedPreferences sharedPreferences;
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -74,31 +91,24 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
     );
-    private EditText contentInputField;
-    private EditText titleInputField;
-    private Button addButton;
-    private ListView notesList;
-    private List<String> titleList;
-    private ArrayAdapter<String> adapter;
-    private SharedPreferences sharedPreferences;
-    private final ActivityResultLauncher<Intent> storageActivityResultLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-                    o -> {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            if (!Environment.isExternalStorageManager()) {
-                                Toast.makeText(this, "Storage Permissions Denied", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         if (!isLockscreenEnabled()) {
-            String message = "App requires setting a system password/pin/pattern to work";
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-            finishAndRemoveTask();
+            closeApp("Cannot use this app without setting system password/pin/pattern");
+            return;
+        }
+
+        if (RootDetectorUtil.isDeviceRooted(this)) {
+            closeApp("Cannot use this app with rooted device");
+            return;
+        }
+
+        if (FridaDetectorUtil.isFridaInstalled()) {
+            closeApp("Cannot use this app when frida-server is installed");
+            return;
         }
 
         setContentView(R.layout.activity_main);
@@ -108,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         addButton = findViewById(R.id.addButton);
         notesList = findViewById(R.id.notesList);
 
-        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences(NOTES_PREFS_NAME, MODE_PRIVATE);
         titleList = new ArrayList<>(loadTitlesFromPreferences());
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, titleList);
         notesList.setAdapter(adapter);
@@ -418,6 +428,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
+    }
+
+    private void closeApp(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        finishAndRemoveTask();
     }
 
 }
