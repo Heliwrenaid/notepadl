@@ -10,6 +10,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
 
+import com.example.notepadl.utils.BiometricUtil;
+import com.example.notepadl.utils.CryptoUtil;
+
 public class SharedActivity extends AppCompatActivity {
 
     public static final String EXTRA_TITLE = "title";

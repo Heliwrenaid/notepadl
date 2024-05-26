@@ -1,4 +1,4 @@
-package com.example.notepadl;
+package com.example.notepadl.utils;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -13,11 +13,11 @@ public final class RootDetectorUtil {
     }
 
     public static boolean isDeviceRooted(Context context) {
-        return isSuperuserPresent() || isRootManagementAppPresent(context) ||
+        return isSuperuserFilesPresent() || isRootManagementAppPresent(context) ||
                 hasDangerousProps() || isSELinuxPermissive() || canCreateFileInSystem();
     }
 
-    private static boolean isSuperuserPresent() {
+    private static boolean isSuperuserFilesPresent() {
         String[] paths = {
                 "/system/app/Superuser.apk",
                 "/sbin/su",

@@ -1,11 +1,11 @@
-package com.example.notepadl;
+package com.example.notepadl.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class NativeCryptoUtil {
+public final class NativeCryptoUtil {
     private final static int INT_SIZE = 4;
     private final static int AES_BLOCK_SIZE = 16;
 

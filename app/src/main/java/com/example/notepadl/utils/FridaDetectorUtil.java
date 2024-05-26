@@ -1,4 +1,4 @@
-package com.example.notepadl;
+package com.example.notepadl.utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,6 +7,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public final class FridaDetectorUtil {
+
+    private FridaDetectorUtil() {
+    }
 
     public static boolean isFridaInstalled() {
         return isFridaPortOpen() || isFridaProcessRunning();

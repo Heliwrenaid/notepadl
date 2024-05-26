@@ -1,6 +1,8 @@
-package com.example.notepadl;
+package com.example.notepadl.utils;
 
 import android.content.SharedPreferences;
+
+import com.example.notepadl.utils.CryptoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -10,7 +12,7 @@ import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SharedPrefsUtil {
+public final class SharedPrefsUtil {
     private SharedPrefsUtil() {
     }
 

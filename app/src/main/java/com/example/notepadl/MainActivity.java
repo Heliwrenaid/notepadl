@@ -34,6 +34,14 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.notepadl.model.AesKeySpec;
+import com.example.notepadl.utils.BiometricUtil;
+import com.example.notepadl.utils.CryptoUtil;
+import com.example.notepadl.utils.FridaDetectorUtil;
+import com.example.notepadl.utils.KeyGeneratorUtil;
+import com.example.notepadl.utils.KeyStoreUtil;
+import com.example.notepadl.utils.NativeCryptoUtil;
+import com.example.notepadl.utils.RootDetectorUtil;
+import com.example.notepadl.utils.SharedPrefsUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -144,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
             String title = titleList.get(position);
             Optional<String> content = loadContentFromPreferences(title);
             if (content.isPresent()) {
-                Intent intent = new Intent(this, DisplayNote.class);
+                Intent intent = new Intent(this, DisplayNoteActivity.class);
                 intent.putExtra(ENCRYPTED_NOTE, content.get());
                 startActivity(intent);
             } else {
@@ -310,7 +318,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     serializedNotes = SharedPrefsUtil.decryptAndSerialize(sharedPreferences);
                 } catch (Exception e) {
-                    Log.d("MainActivity", "Cannot export notes", e);
+                    Log.d(TAG, "Cannot export notes", e);
                     Toast.makeText(MainActivity.this, "Cannot export notes", Toast.LENGTH_SHORT).show();
                     return;
                 }

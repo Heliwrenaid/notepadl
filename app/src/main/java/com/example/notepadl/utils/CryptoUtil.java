@@ -1,4 +1,4 @@
-package com.example.notepadl;
+package com.example.notepadl.utils;
 
 import android.util.Base64;
 
@@ -14,7 +14,8 @@ public final class CryptoUtil {
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 16;
 
-    private CryptoUtil() {}
+    private CryptoUtil() {
+    }
 
     public static String decryptString(String encryptedText) throws Exception {
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);

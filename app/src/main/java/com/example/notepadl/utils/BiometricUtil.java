@@ -1,4 +1,4 @@
-package com.example.notepadl;
+package com.example.notepadl.utils;
 
 import android.util.Log;
 
@@ -9,7 +9,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import java.util.concurrent.Executor;
 
-public class BiometricUtil {
+public final class BiometricUtil {
 
     private final FragmentActivity activity;
     private final BiometricPrompt.AuthenticationCallback authenticationCallback;

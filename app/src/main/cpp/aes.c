@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <openssl/aes.h>
-#include "com_example_notepadl_NativeCryptoUtil.h"
+#include "com_example_notepadl_utils_NativeCryptoUtil.h"
 #include <jni.h>
 
 #define AES_BLOCK_SIZE 16
@@ -19,7 +19,7 @@ void decrypt(const unsigned char *ciphertext, int ciphertext_len, unsigned char 
     AES_cbc_encrypt(ciphertext, plaintext, ciphertext_len, &decrypt_key, iv, AES_DECRYPT);
 }
 
-JNIEXPORT jbyteArray JNICALL Java_com_example_notepadl_NativeCryptoUtil_encryptInternal(JNIEnv *env, jobject obj, jbyteArray input, jbyteArray key, jbyteArray iv) {
+JNIEXPORT jbyteArray JNICALL Java_com_example_notepadl_utils_NativeCryptoUtil_encryptInternal(JNIEnv *env, jobject obj, jbyteArray input, jbyteArray key, jbyteArray iv) {
     jbyte *input_data = (*env)->GetByteArrayElements(env, input, NULL);
     jsize input_len = (*env)->GetArrayLength(env, input);
     jbyte *key_data = (*env)->GetByteArrayElements(env, key, NULL);
@@ -42,7 +42,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_example_notepadl_NativeCryptoUtil_encryptI
     return result;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_com_example_notepadl_NativeCryptoUtil_decryptInternal(JNIEnv *env, jobject obj, jbyteArray input, jbyteArray key, jbyteArray iv) {
+JNIEXPORT jbyteArray JNICALL Java_com_example_notepadl_utils_NativeCryptoUtil_decryptInternal(JNIEnv *env, jobject obj, jbyteArray input, jbyteArray key, jbyteArray iv) {
     jbyte *input_data = (*env)->GetByteArrayElements(env, input, NULL);
     jsize input_len = (*env)->GetArrayLength(env, input);
     jbyte *key_data = (*env)->GetByteArrayElements(env, key, NULL);

@@ -1,18 +1,20 @@
-package com.example.notepadl;
+package com.example.notepadl.utils;
 
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 
 import java.security.KeyStore;
+
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
-public class KeyStoreUtil {
+public final class KeyStoreUtil {
 
     private static final String KEYSTORE_ALIAS = "notepadl_key_alias";
     private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
 
-    private KeyStoreUtil() {}
+    private KeyStoreUtil() {
+    }
 
     public static void generateKeyIfNotExists() throws Exception {
         KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);

@@ -11,7 +11,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
 
-public class DisplayNote extends AppCompatActivity {
+import com.example.notepadl.utils.BiometricUtil;
+import com.example.notepadl.utils.CryptoUtil;
+
+public class DisplayNoteActivity extends AppCompatActivity {
+    private static final String TAG = "DisplayNoteActivity";
     private static final String ENCRYPTED_NOTE = "EncryptedNote";
     private View sensitiveView;
 
@@ -34,7 +38,7 @@ public class DisplayNote extends AppCompatActivity {
             BiometricUtil biometricUtil = new BiometricUtil(this, displayNoteContent(encryptedNote));
             biometricUtil.authenticate();
         } else {
-            Log.e("DisplayNoteActivity", "No encrypted note provided");
+            Log.e(TAG, "No encrypted note provided");
         }
     }
 
@@ -48,7 +52,7 @@ public class DisplayNote extends AppCompatActivity {
                     TextView textView = findViewById(R.id.sensitiveTextView);
                     textView.setText(decryptedNote);
                 } catch (Exception ex) {
-                    Log.e("MainActivity", "Failed to decrypt note", ex);
+                    Log.e(TAG, "Failed to decrypt note", ex);
                 }
             }
         };

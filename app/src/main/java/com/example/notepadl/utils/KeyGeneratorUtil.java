@@ -1,4 +1,4 @@
-package com.example.notepadl;
+package com.example.notepadl.utils;
 
 import com.example.notepadl.model.AesKeySpec;
 
@@ -7,8 +7,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-public class KeyGeneratorUtil {
-    private KeyGeneratorUtil() {}
+public final class KeyGeneratorUtil {
+    private KeyGeneratorUtil() {
+    }
 
     public static AesKeySpec generateAesKeySpec(String seed) throws NoSuchAlgorithmException {
         MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
